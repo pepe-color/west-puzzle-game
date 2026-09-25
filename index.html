@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>🌈 全消しパズル</title>
+
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      background: #fffaf5;
+      padding: 30px;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    #message {
+      font-size: 20px;
+      min-height: 30px;
+      margin: 20px 0;
+    }
+
+    #board {
+      display: grid;
+      grid-template-columns: repeat(5, 60px);
+      gap: 6px;
+      justify-content: center;
+      margin: 30px auto;
+    }
+
+    .cell {
+      width: 60px;
+      height: 60px;
+      border-radius: 14px;
+      background: #eee;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      font-size: 38px;
+
+      cursor: pointer;
+      user-select: none;
+
+      transition:
+        transform 0.15s,
+        opacity 0.25s,
+        background 0.15s;
+    }
+
+    .cell:hover {
+      transform: scale(1.08);
+    }
+
+    .selected {
+      outline: 4px solid #333;
+      transform: scale(1.08);
+    }
+
+    .empty {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #restart {
+      font-size: 16px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 10px;
+      background: white;
+      box-shadow: 0 2px 6px #ccc;
+      cursor: pointer;
+    }
+
+    #restart:hover {
+      transform: scale(1.05);
+    }
+
+    #clear {
+      font-size: 34px;
+      font-weight: bold;
+      margin-top: 25px;
+      min-height: 45px;
+    }
+  </style>
+</head>
+
+
+<body>
+
+  <h1>🌈 全消しパズル</h1>
+
+  <p>
+    隣り合うピースを入れ替えて<br>
+    同じ色を3つ以上そろえよう！
+  </p>
+
+  <div id="message">
+    ピースを選んでね✨
+  </div>
+
+  <div id="board"></div>
+
+  <button id="restart">
+    🔄 NEW GAME
+  </button>
+
+  <div id="clear"></div>
+
+
+  <script>
+
+    const ROWS = 5;
+    const COLS = 5;
+
+    const COLORS = [
+      "🔴",
+      "🟠",
+      "🟡",
+      "🟢",
+      "🔵",
+      "🟣",
+      "🩷"
+    ];
+
+    let board = [];
+
+    let selected = null;
+
+    const boardElement =
+      document.getElementById("board");
+
+    const messageElement =
+      document.getElementById("message");
+
+    const clearElement =
+      document.getElementById("clear");
+
+
+    // -------------------------
+    // ゲーム開始
+    // -------------------------
+
+    function startGame() {
+
+      selected = null;
+
+      clearElement.textContent = "";
+
+      messageElement.textContent =
+        "ピースを選んでね✨";
+
+      board = [];
+
+      for (let row = 0; row < ROWS; row++) {
+
+        const newRow = [];
+
+        for (let col = 0; col < COLS; col++) {
+
+          const randomColor =
+            COLORS[
+              Math.floor(
+                Math.random() * COLORS.length
+              )
+            ];
+
+          newRow.push(randomColor);
+        }
+
+        board.push(newRow);
+      }
+
+      renderBoard();
+    }
+
+
+    // -------------------------
+    // 盤面を表示
+    // -------------------------
+
+    function renderBoard() {
+
+      boardElement.innerHTML = "";
+
+      for (let row = 0; row < ROWS; row++) {
+
+        for (let col = 0; col < COLS; col++) {
+
+          const cell =
+            document.createElement("div");
+
+          cell.className = "cell";
+
+          const value = board[row][col];
+
+          if (value === null) {
+
+            cell.classList.add("empty");
+
+          } else {
+
+            cell.textContent = value;
+          }
+
+
+          if (
+            selected &&
+            selected.row === row &&
+            selected.col === col
+          ) {
+            cell.classList.add("selected");
+          }
+
+
+          cell.addEventListener(
+            "click",
+            () => selectCell(row, col)
+          );
+
+          boardElement.appendChild(cell);
+        }
+      }
+    }
+
+
+    // -------------------------
+    // ピースを選択
+    // -------------------------
+
+    function selectCell(row, col) {
+
+      if (board[row][col] === null) {
+        return;
+      }
+
+
+      // 1個目
+      if (!selected) {
+
+        selected = { row, col };
+
+        messageElement.textContent =
+          "隣のピースを選んでね👀";
+
+        renderBoard();
+
+        return;
+      }
+
+
+      // 同じ場所をもう一度押した
+      if (
+        selected.row === row &&
+        selected.col === col
+      ) {
+
+        selected = null;
+
+        messageElement.textContent =
+          "選択を解除したよ";
+
+        renderBoard();
+
+        return;
+      }
+
+
+      // 隣り合っているか
+      const distance =
+        Math.abs(selected.row - row) +
+        Math.abs(selected.col - col);
+
+
+      if (distance !== 1) {
+
+        selected = { row, col };
+
+        messageElement.textContent =
+          "そのピースを選び直したよ✨";
+
+        renderBoard();
+
+        return;
+      }
+
+
+      // 交換前の位置を覚えておく
+const first = {
+  row: selected.row,
+  col: selected.col
+};
+
+const second = {
+  row,
+  col
+};
+
+
+// 隣同士を交換
+swapPieces(
+  first.row,
+  first.col,
+  second.row,
+  second.col
+);
+
+selected = null;
+
+renderBoard();
+
+
+setTimeout(() => {
+
+  const matches = findMatches();
+
+
+  if (matches.length > 0) {
+
+    // 揃った！
+    removeMatches(matches);
+
+  } else {
+
+    // 揃わなかったので元に戻す
+    swapPieces(
+      first.row,
+      first.col,
+      second.row,
+      second.col
+    );
+
+    renderBoard();
+
+    messageElement.textContent =
+      "揃わなかったので元に戻ったよ👀";
+
+  }
+
+}, 150);
+    }
+
+
+    // -------------------------
+    // ピース交換
+    // -------------------------
+
+    function swapPieces(
+      row1,
+      col1,
+      row2,
+      col2
+    ) {
+
+      const temp =
+        board[row1][col1];
+
+      board[row1][col1] =
+        board[row2][col2];
+
+      board[row2][col2] =
+        temp;
+    }
+
+
+    // -------------------------
+    // 3個以上そろっている場所を探す
+    // -------------------------
+
+    function findMatches() {
+
+      const matched =
+        new Set();
+
+
+      // 横方向
+      for (let row = 0; row < ROWS; row++) {
+
+        let start = 0;
+
+        while (start < COLS) {
+
+          const color =
+            board[row][start];
+
+          if (color === null) {
+            start++;
+            continue;
+          }
+
+          let end = start + 1;
+
+          while (
+            end < COLS &&
+            board[row][end] === color
+          ) {
+            end++;
+          }
+
+          if (end - start >= 3) {
+
+            for (
+              let col = start;
+              col < end;
+              col++
+            ) {
+
+              matched.add(
+                `${row},${col}`
+              );
+            }
+          }
+
+          start = end;
+        }
+      }
+
+
+      // 縦方向
+      for (let col = 0; col < COLS; col++) {
+
+        let start = 0;
+
+        while (start < ROWS) {
+
+          const color =
+            board[start][col];
+
+          if (color === null) {
+            start++;
+            continue;
+          }
+
+          let end = start + 1;
+
+          while (
+            end < ROWS &&
+            board[end][col] === color
+          ) {
+            end++;
+          }
+
+          if (end - start >= 3) {
+
+            for (
+              let row = start;
+              row < end;
+              row++
+            ) {
+
+              matched.add(
+                `${row},${col}`
+              );
+            }
+          }
+
+          start = end;
+        }
+      }
+
+
+      return [...matched];
+    }
+
+
+    // -------------------------
+    // 揃ったピースを消す
+    // -------------------------
+
+    function removeMatches(matches) {
+
+      matches.forEach(position => {
+
+        const [row, col] =
+          position
+            .split(",")
+            .map(Number);
+
+        board[row][col] = null;
+      });
+
+
+      messageElement.textContent =
+        `✨ ${matches.length}個消えた！！ ✨`;
+
+      renderBoard();
+
+
+      setTimeout(() => {
+
+        dropPieces();
+
+        renderBoard();
+
+
+        // 落ちた結果、
+        // 新しく3個揃っていたら連鎖！
+        setTimeout(() => {
+
+          const nextMatches =
+            findMatches();
+
+          if (nextMatches.length > 0) {
+
+            messageElement.textContent =
+              "🌈 連鎖！！ 🌈";
+
+            removeMatches(nextMatches);
+
+          } else {
+
+            checkClear();
+          }
+
+        }, 250);
+
+      }, 300);
+    }
+
+
+    // -------------------------
+    // 空いた場所へピースを落とす
+    // -------------------------
+
+    function dropPieces() {
+
+      for (let col = 0; col < COLS; col++) {
+
+        const remaining = [];
+
+        // 下から残っているピースを集める
+        for (
+          let row = ROWS - 1;
+          row >= 0;
+          row--
+        ) {
+
+          if (board[row][col] !== null) {
+
+            remaining.push(
+              board[row][col]
+            );
+          }
+        }
+
+
+        // 一度全部空にする
+        for (
+          let row = 0;
+          row < ROWS;
+          row++
+        ) {
+
+          board[row][col] = null;
+        }
+
+
+        // 下から詰め直す
+        let targetRow =
+          ROWS - 1;
+
+        remaining.forEach(color => {
+
+          board[targetRow][col] =
+            color;
+
+          targetRow--;
+        });
+      }
+    }
+
+    // -------------------------
+    // 「もう揃えられない」をゲーム側に判定させる
+    // -------------------------
+
+    function hasPossibleMove() {
+
+  for (let row = 0; row < ROWS; row++) {
+
+    for (let col = 0; col < COLS; col++) {
+
+      if (board[row][col] === null) {
+        continue;
+      }
+
+
+      // 右隣
+      if (
+        col + 1 < COLS &&
+        board[row][col + 1] !== null
+      ) {
+
+        swapPieces(
+          row,
+          col,
+          row,
+          col + 1
+        );
+
+        const matches =
+          findMatches();
+
+        swapPieces(
+          row,
+          col,
+          row,
+          col + 1
+        );
+
+        if (matches.length > 0) {
+          return true;
+        }
+      }
+
+
+      // 下隣
+      if (
+        row + 1 < ROWS &&
+        board[row + 1][col] !== null
+      ) {
+
+        swapPieces(
+          row,
+          col,
+          row + 1,
+          col
+        );
+
+        const matches =
+          findMatches();
+
+        swapPieces(
+          row,
+          col,
+          row + 1,
+          col
+        );
+
+        if (matches.length > 0) {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
+    // -------------------------
+    // 詰んだら「残ったピースだけ」をシャッフル
+    // -------------------------
+
+    function shuffleRemainingPieces() {
+
+  const remaining = [];
+
+
+  // 残っているピースだけ集める
+  for (let row = 0; row < ROWS; row++) {
+
+    for (let col = 0; col < COLS; col++) {
+
+      if (board[row][col] !== null) {
+
+        remaining.push(
+          board[row][col]
+        );
+
+      }
+    }
+  }
+
+
+  // シャッフル
+  for (
+    let i = remaining.length - 1;
+    i > 0;
+    i--
+  ) {
+
+    const j =
+      Math.floor(
+        Math.random() * (i + 1)
+      );
+
+    [
+      remaining[i],
+      remaining[j]
+    ] = [
+      remaining[j],
+      remaining[i]
+    ];
+  }
+
+
+  // 盤面を空にする
+  for (let row = 0; row < ROWS; row++) {
+
+    for (let col = 0; col < COLS; col++) {
+
+      board[row][col] = null;
+
+    }
+  }
+
+
+  // 下から詰め直す
+  let index = 0;
+
+  for (
+    let row = ROWS - 1;
+    row >= 0;
+    row--
+  ) {
+
+    for (
+      let col = 0;
+      col < COLS;
+      col++
+    ) {
+
+      if (index < remaining.length) {
+
+        board[row][col] =
+          remaining[index];
+
+        index++;
+
+      }
+    }
+  }
+
+
+  renderBoard();
+
+  messageElement.textContent =
+    "🌈 手詰まり！残ったピースをシャッフルしたよ！";
+}
+
+
+    // -------------------------
+    // 全消しチェック
+    // -------------------------
+
+    function checkClear() {
+
+      const allClear =
+        board.every(row =>
+          row.every(cell =>
+            cell === null
+          )
+        );
+
+
+      if (allClear) {
+
+        messageElement.textContent =
+          "やったーーーー！！";
+
+        clearElement.textContent =
+          "🌈✨ PERFECT CLEAR!! ✨🌈";
+
+      } else {
+
+  if (hasPossibleMove()) {
+
+    messageElement.textContent =
+      "次はどこ消す？👀✨";
+
+  } else {
+
+    setTimeout(() => {
+
+      shuffleRemainingPieces();
+
+    }, 500);
+
+  }
+}
+    }
+
+
+    // -------------------------
+    // NEW GAME
+    // -------------------------
+
+    document
+      .getElementById("restart")
+      .addEventListener(
+        "click",
+        startGame
+      );
+
+
+    startGame();
+
+  </script>
+
+</body>
+</html>
